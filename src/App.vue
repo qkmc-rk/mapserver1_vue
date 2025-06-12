@@ -1,5 +1,6 @@
 <template>
-  <div class="mapdiv"></div>
+  <div class="mapdiv" ref="mapdiv"></div>
+  <Chat />
 </template>
 
 <script>
@@ -7,42 +8,60 @@
 // import MapView from "@arcgis/core/views/MapView";
 // import Bookmarks from "@arcgis/core/widgets/Bookmarks";
 // import Expand from "@arcgis/core/widgets/Expand"; 
+
+// https://10.255.0.172:6443/arcgis/rest/services/xiangchengliangbanji2/FeatureServer
+
 //MAPS SDK FOR JAVASCRIPT
 import Map from "@arcgis/core/Map";
 import MapView from "@arcgis/core/views/MapView";
 import MapImageLayer from "@arcgis/core/layers/MapImageLayer";
 import BasemapToggle from "@arcgis/core/widgets/BasemapToggle";
+import Chat from './components/Chat/Chat.vue';
+import FeatureServer from "@arcgis/core/layers/FeatureLayer";
+import Point from '@arcgis/core/geometry/Point'
+import SpatialReference from '@arcgis/core/geometry/SpatialReference'
+import Camera from '@arcgis/core/Camera'
 
 export default {
   name: 'App',
+  components: { Chat },
   async mounted() {
     // 创建地图服务图层
     const layer = new MapImageLayer({
-      url: "https://renshou.ruankun.xyz:6443/arcgis/rest/services/gis_1/NDVI2/MapServer",
+      url: "	https://10.255.0.172:6443/arcgis/rest/services/NDVI_TEST_SERVER/MapServer",
       sublayers: [
         { id: 0, visible: true }  // 12月NDVI.tif (0)
       ]
     });
 
+    let layer2 = new FeatureServer({
+      url: "https://10.255.0.172:6443/arcgis/rest/services/xiangchengliangbanji2/FeatureServer/8",
+      outFields: ["*"],  // 获取所有字段
+      popupEnabled: true,  // 启用弹出窗口
+      title: "水系",  // 图层标题
+      popupTemplate: {
+        content: element => {
+          console.log(element.graphic.layer.title, element.graphic.attributes)
+          //将element.graphic.attributes.srname存入localStorage中，并弹出聊天窗口
+          localStorage.setItem('srname', element.graphic.attributes.rname);
+          return `<b>${element.graphic.layer.title}</b><br>水系名称: ${element.graphic.attributes.srname}<br>水系长度: ${element.graphic.attributes.srlength}米`;
+        }
+      }
+    });
+
     // 创建地图实例
     const map = new Map({
       basemap: "topo-vector",  // 添加基础底图
-      layers: [layer]          // 添加你的服务图层
+      layers: [layer, layer2]          // 添加你的服务图层
     });
 
      // 创建视图实例
     const view = new MapView({
-      container: this.$el,
+      container: this.$refs.mapdiv,  // 挂载到组件的 mapdiv
       map: map,
-      extent: {  // 设置初始显示范围
-        xmin: 103.74156173024906,
-        ymin: 30.088144956279066,
-        xmax: 103.87557912703059,
-        ymax: 30.179769094895022,
-        spatialReference: { wkid: 4326 }
-      },
+      center: [99.74587169702623, 29.074594554358285],
       constraints: {
-        minZoom: 12,  // 限制最小缩放级别
+        minZoom: 10,  // 限制最小缩放级别
         rotationEnabled: false  // 禁用旋转
       }
     });
